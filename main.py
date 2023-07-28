@@ -14,6 +14,23 @@ import configparser
 import pyfiglet
 from tabulate import tabulate
 
+def make_header(xyscale, ch_names, val):
+
+    data_scale_name=['T step(s)', 'Y Scale(V)', 'Y Offset(mV)']
+    mylist = list(zip(data_scale_name, xyscale))
+    data_preamble ='Data ::' + ' ; '.join('%s:%s' % x for x in mylist)
+
+    config_header_list = list(zip(ch_names,val))
+    config_preamble ='Config (V) :: ' + ' ; '.join('%s:%s' %x for x in config_header_list)
+    
+    
+    header = data_preamble + '\n' + config_preamble + '\n\n\n\n\n\n'
+
+    return header
+
+
+
+
 if __name__ == '__main__':
 
     tek_scope = svi.tek_visa()
@@ -23,21 +40,18 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(prog = 'TMSeDrone')
 
-    parser.add_argument('--sp', dest='single_pixel', help='Measure single pixel (CSA) waveforms', action='store_true')
-
-    parser.add_argument('-config', nargs=1, type=argparse.FileType('r', encoding='UTF-8'), dest='config_file', help='Config File')
-
-
-
+    parser.add_argument('--sp' , type=int, dest='num_wfs', help='Number of single pixel (CSA) waveforms')
+    parser.add_argument('-config', type=argparse.FileType('r', encoding='UTF-8'), dest='config_file', help='Config File', default='config/Config.ini')
+    parser.add_argument('-ofile', type = str, dest = 'ofile', help = 'Prefix for output file(s)', default='video_out')
 
     args=parser.parse_args() 
 
-    if (args.single_pixel == True):
+    if (args.num_wfs is not None): #means we want single pixel waveforms
         
         #Load DAC
         load_instant=False
         config=configparser.ConfigParser()
-        config.read(args.config_file[0].name)
+        config.read(args.config_file.name)
 
         ch = np.arange(0,8,1)
         ch_names = ['SF_IB', 'NB1', 'NB2', 'OUT_IB', 'AMP_IB', 'VREF', 'CSA_VREF', 'VBIAS']
@@ -75,24 +89,16 @@ if __name__ == '__main__':
             input number waveforms taken
 
         '''
+                
         xyscale =  tek_scope.get_scale()
-        wf = tek_scope.get_waveform(2)
         
-        #plt.plot(wf)
-        #plt.show()
-
-        #write header
-
-        data_scale_name=['T step(s)', 'Y Scale(V)', 'Y Offset(mV)']
-        mylist = list(zip(data_scale_name, xyscale))
-        data_preamble ='Data ::' + ' ; '.join('%s:%s' % x for x in mylist)
-
-        config_header_list = list(zip(ch_names,val))
-        config_preamble ='Config (V) :: ' + ' ; '.join('%s:%s' %x for x in config_header_list)
+        header = make_header(xyscale, ch_names, val)  
+        for i in range(args.num_wfs): 
+            wf = tek_scope.get_waveform(2)
         
-        with open("output.txt", "w") as out:
-            out.write(data_preamble + '\n' + config_preamble + '\n\n\n\n\n\n')
-            out.write(str(list(wf)))
+            with open(args.ofile+"_%i.dat"%i, "w") as out:
+                out.write(header)
+                out.write(str(list(wf)))
 
     else: #read pixel array
         print('pixel array read not available')
