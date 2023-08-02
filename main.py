@@ -94,7 +94,7 @@ if __name__ == '__main__':
         
         header = make_header(xyscale, ch_names, val)  
         for i in range(args.num_wfs): 
-            wf = tek_scope.get_waveform(2)
+            wf = tek_scope.get_waveform(1)
         
             with open(args.ofile+"_%i.dat"%i, "w") as out:
                 out.write(header)
