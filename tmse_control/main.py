@@ -13,7 +13,6 @@ if __name__ == '__main__':
     Banner = pyfiglet.figlet_format("Selena TMSe Control", width=800)
     print(Banner)
 
-
     #Argument Parser
     parser = argparse.ArgumentParser(prog = 'DAC Writer')
     

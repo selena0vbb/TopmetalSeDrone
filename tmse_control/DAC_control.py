@@ -18,8 +18,12 @@ class DAC_8568():
     def __init__(self):
         self.baud_rate = 9600
         self.internal_ref = False
+        self.port_name = '/dev/ttyUSB1' 
+        self.ser = serial.Serial(self.port_name, self.baud_rate)
+    def set_port(self,port):
         
-        self.ser = serial.Serial('/dev/ttyUSB1', self.baud_rate)
+        self.port_name = port
+
     def spi_write(self, binary_string):
         '''
             Takes 32bit binary string and sends it via serial to the UART on the FPGA

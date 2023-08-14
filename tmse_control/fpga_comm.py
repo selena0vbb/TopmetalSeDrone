@@ -1,6 +1,7 @@
 import serial
 
 DONT_CARE = "0101" #used for dont care bits, value irrelevant
+DAC_START = "0000"
 SA_PXL_SELECT = "0001" #select pixel via UART
 SA_PXL_SWITCH = "0011" #select pixel via hardware switches
 LA_PXL_SELECT = "0100" #select pixel via UART
@@ -26,7 +27,7 @@ class fpga_UART_commands():
         self.baud_rate = 9600
         self.internal_ref = False
         self.port_name = '/dev/ttyUSB1'
-        #self.ser = serial.Serial(self.port_name, self.baud_rate)
+        self.ser = serial.Serial(self.port_name, self.baud_rate)
     
     def set_port(port):
         self.port_name = port
@@ -35,29 +36,32 @@ class fpga_UART_commands():
         if len(binary_string) != 8:
             print("wrong length")
             return
-        uart_packet=bytearray(binary_string)
+        uart_packet=bytearray()
+        uart_packet.append(int(binary_string,2))
+        print(uart_packet)
+
         self.ser.write(uart_packet)
     
     def DAC_write_start(self):
-        self.uart_write(DONT_CARE+SA_PXL_SELECT)
+        self.uart_write(DONT_CARE+DAC_START)
 
     def LA_pixel_select(self, pxl_num):
         self.uart_write(DONT_CARE+LA_PXL_SELECT)
         DATA = format(pxl_num, '016b')
-        print(DATA+SA_PXL_SELECT)
         
     def LA_scan_on():
         return -1
 
     def SA_pixel_select(self, pxl_num):
         DATA = format(pxl_num, '04b')
+
         self.uart_write(DATA+SA_PXL_SELECT)
 
     def SA_use_switch():
         return -1
     def spi_write(self, binary_string):
         '''
-            Takes 32bit binary string and sends it via serial to the UART on the FPGA
+            Takes 32bit binary string and sends it via serial to the UART on the FPGA to be sent via SPI to the DAC
             Does this by first dividing the 32 bit into 4 packets of 8 bits and sending one byte at a time
 
         '''
@@ -66,7 +70,10 @@ class fpga_UART_commands():
         if len(binary_string) != 32:
             print("wrong length")
             return
+        self.DAC_write_start()
+        print(binary_string)
         packets = [int(binary_string[i:i+8],2) for i in range(0,32,8)]
+        print(packets)
         uart_packet = bytearray()
         
         uart_packet.append(packets[3])
@@ -144,6 +151,9 @@ class fpga_UART_commands():
 
 if __name__ == '__main__':
     fpga = fpga_UART_commands()
-    fpga.SA_pixel_select(2)
-
-    
+    #fpga.SA_pixel_select(0)
+#    fpga.set_internal_ref()
+    fpga.set_dac_voltage(0,0.3)
+    fpga.set_dac_voltage(1,1.5)
+    fpga.set_dac_voltage(2, 1.14) 
+    fpga.set_dac_voltage(3,0.696)
