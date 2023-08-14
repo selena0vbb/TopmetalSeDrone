@@ -14,6 +14,7 @@ def to_xy(ADC_data, xyscale):
 class tek_visa():
     def __init__(self):
         rm = pyvisa.ResourceManager('@py')
+        
         self.scope = rm.open_resource('USB0::1689::932::C040658::0::INSTR')
 
         print(self.scope.query('*IDN?'))
@@ -49,14 +50,14 @@ class tek_visa():
         return ADC_wave 
 
 if __name__ == '__main__':
-    scope = tek_scope();
+    scope = tek_visa();
     scope.get_preamble()
 
-    ADC_wave = scope.get_waveform(1)
+#    ADC_wave = scope.get_waveform(1)
     xyscale = scope.get_scale()
     time,volts= to_xy(ADC_wave,xyscale)
 
-    plt.plot(time, volts)
-    plt.show()
+#    plt.plot(time, volts)
+#    plt.show()
 
 

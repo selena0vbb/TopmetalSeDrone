@@ -1,5 +1,5 @@
 import serial
-
+import time
 DONT_CARE = "0101" #used for dont care bits, value irrelevant
 DAC_START = "0000"
 SA_PXL_SELECT = "0001" #select pixel via UART
@@ -82,7 +82,7 @@ class fpga_UART_commands():
         uart_packet.append(packets[0])
     
         self.ser.write(uart_packet)
-    
+#        time.sleep(0.1) 
     def set_internal_ref(self):
         '''
             Tells the DAC to use its internal reference voltage (~2.5V)
@@ -152,8 +152,12 @@ class fpga_UART_commands():
 if __name__ == '__main__':
     fpga = fpga_UART_commands()
     #fpga.SA_pixel_select(0)
-#    fpga.set_internal_ref()
+    fpga.set_internal_ref()
     fpga.set_dac_voltage(0,0.3)
     fpga.set_dac_voltage(1,1.5)
     fpga.set_dac_voltage(2, 1.14) 
     fpga.set_dac_voltage(3,0.696)
+    fpga.set_dac_voltage(4, 1.143)
+    fpga.set_dac_voltage(5, 0.5)
+    fpga.set_dac_voltage(6, 0.27)
+    fpga.set_dac_voltage(7, 1)
