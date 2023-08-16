@@ -32,7 +32,7 @@ class afg_visa():
         self.scope.write('OUTP2 '+ str(status2))
         self.scope.write('SOURce2:VOLTage +'+str(voltage2))
         self.scope.write('SOURce2:FREQuency +' + str(frequency2))
-
+        self.scope.write('OUTP2:LOAD INF')
 
   #      SOURce1:FUNCtion:SQUare:PERiod +1.0E-06
  #       SOURce1:FUNCtion:PULSe:PERiod +1.0E-06
@@ -43,7 +43,7 @@ class afg_visa():
 if __name__ == '__main__':
     afg = afg_visa()
     afg.setch1_voltage('OFF',0.7,+1.0E+06)
-    afg.setch2_voltage('ON',0.4,+1.0E+06)
+    afg.setch2_voltage('OFF',0.4,+1.0E+06)
 
 
    # scope.get_preamble()
