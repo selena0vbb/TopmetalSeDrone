@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     args=parser.parse_args() 
     print(args.use_switch)
-    if (args.num_wfs is None): #means we want single pixel waveforms
+    if (args.num_wfs is not None): #means we want single pixel waveforms
         
         #Load DAC
         load_instant=False
@@ -86,13 +86,13 @@ if __name__ == '__main__':
         '''
             Need to write VHDL, python to do this
 
-       ''' 
+        ''' 
 
         #Readout waveforms from scope
-        '''
+        ''' 
             input number waveforms taken
 
-        
+        '''
                 
         xyscale =  tek_scope.get_scale()
         
@@ -102,8 +102,8 @@ if __name__ == '__main__':
         
             with open(args.ofile+"_%i.dat"%i, "w") as out:
                 out.write(header)
-                out.write(str(list(wf)))
-        '''
+                out.write(str(list(wf))[1:-1])
+        
     else: #read pixel array
         print('pixel array read not available')
         

@@ -2,3 +2,5 @@ dat/
 scope_control/__pycache__/*
 tmse_control/__pycache__/*
 *.swp
+*.dat
+test.py
