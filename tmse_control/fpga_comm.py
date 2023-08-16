@@ -95,7 +95,7 @@ class fpga_UART_commands():
 
         self.uart_write(DATA+SA_PXL_SELECT)
 
-    def SA_use_switch():
+    def SA_use_switch(self):
         '''
             Allows user to select a pixel via the hardware switches on the BASYS3 FPGA board
         '''

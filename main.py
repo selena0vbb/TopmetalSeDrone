@@ -47,10 +47,8 @@ if __name__ == '__main__':
     parser.add_argument('-LA_clk', type = bool, dest='la_clk_on', help = 'Turn on LA pixel scan')
 
     args=parser.parse_args() 
-    print(args.use_switch)
-    if (args.num_wfs is not None): #means we want single pixel waveforms
-        
-        #Load DAC
+    
+    if (args.config_file is not None): #write a bias config 
         load_instant=False
         config=configparser.ConfigParser()
         config.read(args.config_file.name)
@@ -81,14 +79,18 @@ if __name__ == '__main__':
                     fpga_device.set_dac_voltage(channel, dac_value ) #write DAC without loading 
                 else:
                     fpga_device.set_dac_voltage(channel, dac_value, load=True,update_all=True, adu = use_adu) #write last channel and load all values
+    if (args.sa_pxl_addr is not None):
         
-        #Select Pixel
-        '''
-            Need to write VHDL, python to do this
+        fpga_device.SA_pixel_select(args.sa_pxl_addr)
+    else:
+        fpga_device.SA_use_switch()
 
-        ''' 
 
-        #Readout waveforms from scope
+
+    if (args.num_wfs is not None): #means we want single pixel waveforms
+        
+        #Load DAC
+            #Readout waveforms from scope
         ''' 
             input number waveforms taken
 
