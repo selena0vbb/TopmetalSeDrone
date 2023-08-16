@@ -14,16 +14,19 @@ import configparser
 import pyfiglet
 from tabulate import tabulate
 
-def make_header(xyscale, ch_names, val):
-
+def make_header(xyscale, config, ch_names, val):
+    #Oscilloscope Scale Settings
     data_scale_name=['T step(s)', 'Y Scale(V)', 'Y Offset(mV)']
     mylist = list(zip(data_scale_name, xyscale))
     data_preamble ='Data ::' + ' ; '.join('%s:%s' % x for x in mylist)
 
+    #Bias Settings
     config_header_list = list(zip(ch_names,val))
     config_preamble ='Config (V) :: ' + ' ; '.join('%s:%s' %x for x in config_header_list)
     
-    
+    #TMSe Info
+
+
     header = data_preamble + '\n' + config_preamble + '\n\n\n\n\n\n'
 
     return header
@@ -70,8 +73,6 @@ if __name__ == '__main__':
         for value_set in table_ch_val:
             channel = value_set[0]
             dac_value = value_set[2]
-            print(dac_value)
-            print(channel)
             if load_instant: 
                 fpga_device.set_dac_voltage(channel, dac_value, load=True, adu = use_adu) #write DAC value and instantly load onto DAC
             else:
@@ -84,8 +85,6 @@ if __name__ == '__main__':
         fpga_device.SA_pixel_select(args.sa_pxl_addr)
     else:
         fpga_device.SA_use_switch()
-
-
 
     if (args.num_wfs is not None): #means we want single pixel waveforms
         
