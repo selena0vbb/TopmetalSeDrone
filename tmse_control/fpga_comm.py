@@ -8,13 +8,16 @@ LA_PXL_SELECT = "0100" #select pixel via UART
 
 
 def dac_voltage(adu, vref=2.5, gain=1):
+    '''
+        Converts from ADU input to voltage value
+    '''
     v_out = (adu/2**16) * vref
 
     return v_out
 
 def volt_dac(volt, vref = 2.5, gain=1):
     '''
-        converts from v input to DAC value
+        Converts from v input to DAC value
     '''
 #    volt = mv/100
     d_in = volt/(vref*gain) * 2**16
@@ -24,41 +27,80 @@ def volt_dac(volt, vref = 2.5, gain=1):
 class fpga_UART_commands():
 
     def __init__(self):
+        '''
+            Sets initial values
+            Defaults to a baud rate of 9600 and ttyUSB1.
+
+        '''
         self.baud_rate = 9600
         self.internal_ref = False
         self.port_name = '/dev/ttyUSB1'
         self.ser = serial.Serial(self.port_name, self.baud_rate)
     
-    def set_port(port):
+    def set_port(self,port):
+        '''
+            Changes the port name, probably not working as of yet... simple fix for later
+        '''
         self.port_name = port
 
     def uart_write(self,binary_string):
+        '''
+            Writes strings of binary values to the FPGA via UART
+            Only writes 8 bits at a time, for now
+        '''
         if len(binary_string) != 8:
             print("wrong length")
             return
         uart_packet=bytearray()
         uart_packet.append(int(binary_string,2))
-        print(uart_packet)
 
         self.ser.write(uart_packet)
     
     def DAC_write_start(self):
+        '''
+            Tells the FPGA that the 32 bits after these 8 will be used for the DAC and should be written via SPI
+        '''
         self.uart_write(DONT_CARE+DAC_START)
 
     def LA_pixel_select(self, pxl_num):
+        '''
+            Selects a pixel out of the large array
+            If the pxl_num is larger than the number of pixels, this will end up just scanning the pixel array
+        '''
+        self.LA_scan_on()
         self.uart_write(DONT_CARE+LA_PXL_SELECT)
         DATA = format(pxl_num, '016b')
-        
-    def LA_scan_on():
-        return -1
+        self.uart_write(DATA[:8])
+        self.uart_write(DATA[8:])
+
+    def LA_scan_on(self):
+        '''
+            Turns the large array pixel scan on just by setting the pixl number higher than the no. of pixels.
+            I think this is necessary to turn on before a pixel switch in order to clock to the correct pixel.
+        '''
+        self.uart_write(DONT_CARE+LA_PXL_SELECT)
+        DATA = format(12000, '016b')
+        self.uart_write(DATA[:8])
+        self.uart_write(DATA[8:])
 
     def SA_pixel_select(self, pxl_num):
+        '''
+            Selects a pixel out of the small array
+        '''
+        if pxl_num >=9:
+            print("Pixel Number too high")
+            return
+
         DATA = format(pxl_num, '04b')
 
         self.uart_write(DATA+SA_PXL_SELECT)
 
-    def SA_use_switch():
-        return -1
+    def SA_use_switch(self):
+        '''
+            Allows user to select a pixel via the hardware switches on the BASYS3 FPGA board
+        '''
+        self.uart_write(DONT_CARE + SA_PXL_SWITCH)
+
     def spi_write(self, binary_string):
         '''
             Takes 32bit binary string and sends it via serial to the UART on the FPGA to be sent via SPI to the DAC
@@ -152,6 +194,8 @@ class fpga_UART_commands():
 if __name__ == '__main__':
     fpga = fpga_UART_commands()
     #fpga.SA_pixel_select(0)
+    fpga.LA_scan_on()
+    '''
     fpga.set_internal_ref()
     fpga.set_dac_voltage(0,0.3)
     fpga.set_dac_voltage(1,1.5)
@@ -161,3 +205,4 @@ if __name__ == '__main__':
     fpga.set_dac_voltage(5, 0.5)
     fpga.set_dac_voltage(6, 0.27)
     fpga.set_dac_voltage(7, 1)
+    '''

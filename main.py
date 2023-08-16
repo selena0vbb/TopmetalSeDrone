@@ -14,16 +14,19 @@ import configparser
 import pyfiglet
 from tabulate import tabulate
 
-def make_header(xyscale, ch_names, val):
-
+def make_header(xyscale, config, ch_names, val):
+    #Oscilloscope Scale Settings
     data_scale_name=['T step(s)', 'Y Scale(V)', 'Y Offset(mV)']
     mylist = list(zip(data_scale_name, xyscale))
     data_preamble ='Data ::' + ' ; '.join('%s:%s' % x for x in mylist)
 
+    #Bias Settings
     config_header_list = list(zip(ch_names,val))
     config_preamble ='Config (V) :: ' + ' ; '.join('%s:%s' %x for x in config_header_list)
     
-    
+    #TMSe Info
+
+
     header = data_preamble + '\n' + config_preamble + '\n\n\n\n\n\n'
 
     return header
@@ -47,10 +50,8 @@ if __name__ == '__main__':
     parser.add_argument('-LA_clk', type = bool, dest='la_clk_on', help = 'Turn on LA pixel scan')
 
     args=parser.parse_args() 
-    print(args.use_switch)
-    if (args.num_wfs is None): #means we want single pixel waveforms
-        
-        #Load DAC
+    
+    if (args.config_file is not None): #write a bias config 
         load_instant=False
         config=configparser.ConfigParser()
         config.read(args.config_file.name)
@@ -72,8 +73,6 @@ if __name__ == '__main__':
         for value_set in table_ch_val:
             channel = value_set[0]
             dac_value = value_set[2]
-            print(dac_value)
-            print(channel)
             if load_instant: 
                 fpga_device.set_dac_voltage(channel, dac_value, load=True, adu = use_adu) #write DAC value and instantly load onto DAC
             else:
@@ -81,18 +80,20 @@ if __name__ == '__main__':
                     fpga_device.set_dac_voltage(channel, dac_value ) #write DAC without loading 
                 else:
                     fpga_device.set_dac_voltage(channel, dac_value, load=True,update_all=True, adu = use_adu) #write last channel and load all values
+    if (args.sa_pxl_addr is not None):
         
-        #Select Pixel
-        '''
-            Need to write VHDL, python to do this
+        fpga_device.SA_pixel_select(args.sa_pxl_addr)
+    else:
+        fpga_device.SA_use_switch()
 
-       ''' 
-
-        #Readout waveforms from scope
-        '''
+    if (args.num_wfs is not None): #means we want single pixel waveforms
+        
+        #Load DAC
+            #Readout waveforms from scope
+        ''' 
             input number waveforms taken
 
-        
+        '''
                 
         xyscale =  tek_scope.get_scale()
         
@@ -102,8 +103,8 @@ if __name__ == '__main__':
         
             with open(args.ofile+"_%i.dat"%i, "w") as out:
                 out.write(header)
-                out.write(str(list(wf)))
-        '''
+                out.write(str(list(wf))[1:-1])
+        
     else: #read pixel array
         print('pixel array read not available')
         
