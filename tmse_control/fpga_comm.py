@@ -113,9 +113,7 @@ class fpga_UART_commands():
             print("wrong length")
             return
         self.DAC_write_start()
-        print(binary_string)
         packets = [int(binary_string[i:i+8],2) for i in range(0,32,8)]
-        print(packets)
         uart_packet = bytearray()
         
         uart_packet.append(packets[3])

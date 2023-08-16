@@ -25,7 +25,8 @@ def make_header(xyscale, config, ch_names, val):
     config_preamble ='Config (V) :: ' + ' ; '.join('%s:%s' %x for x in config_header_list)
     
     #TMSe Info
-
+    config['TMSe Pixel Array'][Chip_ID]
+    info_preamble ='Chip ID: %%i ,  %s, LA Pixel Num: %i, SA Pixel Num: %i'
 
     header = data_preamble + '\n' + config_preamble + '\n\n\n\n\n\n'
 
