@@ -53,7 +53,6 @@ class fpga_UART_commands():
             return
         uart_packet=bytearray()
         uart_packet.append(int(binary_string,2))
-
         self.ser.write(uart_packet)
     
     def DAC_write_start(self):
@@ -90,9 +89,7 @@ class fpga_UART_commands():
         if pxl_num >=9:
             print("Pixel Number too high")
             return
-
         DATA = format(pxl_num, '04b')
-
         self.uart_write(DATA+SA_PXL_SELECT)
 
     def SA_use_switch(self):
@@ -191,8 +188,9 @@ class fpga_UART_commands():
 
 if __name__ == '__main__':
     fpga = fpga_UART_commands()
-    #fpga.SA_pixel_select(0)
-    fpga.LA_scan_on()
+    fpga.SA_pixel_select(1)
+    #fpga.SA_use_switch()
+    #fpga.LA_scan_on()
     '''
     fpga.set_internal_ref()
     fpga.set_dac_voltage(0,0.3)

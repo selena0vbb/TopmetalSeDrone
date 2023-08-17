@@ -30,5 +30,6 @@ if __name__ == '__main__':
     end=time.time()
     print(end-start)
     print(len(v))
+    print(np.std(v[1000:10000]))
     plt.plot(v)
     plt.show()
