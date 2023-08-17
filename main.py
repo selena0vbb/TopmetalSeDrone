@@ -25,8 +25,8 @@ def make_header(xyscale, config, ch_names, val):
     config_preamble ='Config (V) :: ' + ' ; '.join('%s:%s' %x for x in config_header_list)
     
     #TMSe Info
-    config['TMSe Pixel Array'][Chip_ID]
-    info_preamble ='Chip ID: %%i ,  %s, LA Pixel Num: %i, SA Pixel Num: %i'
+    #config['TMSe Pixel Array'][Chip_ID]
+    #info_preamble ='Chip ID: %%i ,  %s, LA Pixel Num: %i, SA Pixel Num: %i'
 
     header = data_preamble + '\n' + config_preamble + '\n\n\n\n\n\n'
 
@@ -98,13 +98,12 @@ if __name__ == '__main__':
                 
         xyscale =  tek_scope.get_scale()
         
-        header = make_header(xyscale, ch_names, val)  
+        header = make_header(xyscale, config,ch_names, val)  
         for i in range(args.num_wfs): 
-            wf = tek_scope.get_waveform(1)
-        
-            with open(args.ofile+"_%i.dat"%i, "w") as out:
-                out.write(header)
-                out.write(str(list(wf))[1:-1])
+            wf, wf_b = tek_scope.get_waveform(1)
+            with open(args.ofile+"_%i.dat"%i, "wb") as out:
+                out.write(header.encode('utf-8'))
+                out.write(wf_b)
         
     else: #read pixel array
         print('pixel array read not available')
