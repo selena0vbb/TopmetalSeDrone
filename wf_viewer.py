@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import sys
-
+import time
 def get_waveforms(fname, binary_file=True):
     '''
         Used to oscilloscope .dat files from TopmetalSeDrone
@@ -25,6 +25,10 @@ def get_waveforms(fname, binary_file=True):
 
 if __name__ == '__main__':
     fname=sys.argv[1]
+    start=time.time()
     v,tscale=get_waveforms(fname)
+    end=time.time()
+    print(end-start)
+    print(len(v))
     plt.plot(v)
     plt.show()
