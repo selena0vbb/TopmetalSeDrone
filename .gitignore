@@ -4,3 +4,5 @@ tmse_control/__pycache__/*
 *.swp
 *.dat
 test.py
+scope_control/*.txt
+__pycache__/

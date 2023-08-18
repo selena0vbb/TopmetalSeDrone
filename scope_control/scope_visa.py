@@ -37,27 +37,26 @@ class tek_visa():
         self.scope.write('DATA:WIDTH 1')
         self.scope.write('DATA:ENC RPB')
 
-        self.scope.write('DATA:STOP 125000') #sets max data length
+        self.scope.write('DATA:STOP 1250000') #sets max data length
         self.scope.write('CURVE?')
         data = self.scope.read_raw()
         
         headerlen = 2 + int(data[1])
         header = data[:headerlen]
-        ADC_wave = data[headerlen:-1]
-        
-        ADC_wave = np.array(unpack('%sB' % len(ADC_wave),ADC_wave))
+        ADC_wave_b = data[headerlen:-1]
+        ADC_wave = np.array(unpack('%iB' % len(ADC_wave_b),ADC_wave_b))
     
-        return ADC_wave 
+        return ADC_wave, ADC_wave_b 
 
 if __name__ == '__main__':
     scope = tek_visa();
     scope.get_preamble()
 
-#    ADC_wave = scope.get_waveform(1)
+    ADC_wave, b = scope.get_waveform(1)
     xyscale = scope.get_scale()
     time,volts= to_xy(ADC_wave,xyscale)
-
-#    plt.plot(time, volts)
-#    plt.show()
+    
+    plt.plot(time, volts)
+    plt.show()
 
 
