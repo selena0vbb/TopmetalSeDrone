@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('tmse_control/')
 sys.path.append('scope_control/')
+sys.path.append('afg_control/')
 
+import afg_input as afg
 import scope_visa as svi
 import DAC_control
 import fpga_comm
@@ -23,7 +25,7 @@ def make_header(xyscale, config, args,ch_names, val):
     #Bias Settings
     config_header_list = list(zip(ch_names,val))
     dac_preamble ='#Config (V) :: ' + ' ; '.join('%s:%s' %x for x in config_header_list)
-    
+
     
     #TMSe Info
     config_preamble=''
@@ -41,6 +43,7 @@ def make_header(xyscale, config, args,ch_names, val):
 if __name__ == '__main__':
 
     tek_scope = svi.tek_visa()
+    afg_device = afg.afg_visa() 
 
     fpga_device = fpga_comm.fpga_UART_commands()
     fpga_device.set_internal_ref()
@@ -74,7 +77,12 @@ if __name__ == '__main__':
                 fpga_device.SA_pixel_select(int(config['TMSe Pixel']['SA_pxl_num']))
             elif config['TMSe Pixel']['LA_pxl_num'] != -1:
                 print('LA not yet tested')
-        
+        if config['Calibration']['Calib'] == 'True':
+            pulse_height = float(config['Calibration']['gring_height']) /1000
+            gring_freq = float(config['Calibration']['gring_freq'])
+
+            afg_device.setch2_voltage('ON',pulse_height ,gring_freq)
+
         load_instant=False
 
         ch = np.arange(0,8,1)
