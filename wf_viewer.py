@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 
 import sys
 import time
+import uproot
+
 def get_waveforms(fname, binary_file=True):
     '''
         Used to oscilloscope .dat files from TopmetalSeDrone
@@ -22,14 +24,20 @@ def get_waveforms(fname, binary_file=True):
     v = dat * vscale
     return v, tscale
 
+def get_root_wf(fname):
+    froot = uproot.open(fname)
+    config = froot["Header"]
+
+    wf = froot["wfTree"]["wf"].array(library="np")
+#    print(wf)
+    #print(froot["Header"].keys())
+
+    return wf
 
 if __name__ == '__main__':
     fname=sys.argv[1]
     start=time.time()
-    v,tscale=get_waveforms(fname)
+    wf = get_root_wf(fname)
     end=time.time()
     print(end-start)
-    print(len(v))
-    print(np.std(v[1000:10000]))
-    plt.plot(v)
     plt.show()

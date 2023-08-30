@@ -12,10 +12,12 @@ import DAC_control
 import fpga_comm
 import argparse
 import configparser
+import uproot
 
 import pyfiglet
 from tabulate import tabulate
 
+import time
 def make_header(xyscale, config, args,ch_names, val):
     #Oscilloscope Scale Settings
     data_scale_name=['T step(s)', 'Y Scale(V)', 'Y Offset(mV)']
@@ -34,16 +36,33 @@ def make_header(xyscale, config, args,ch_names, val):
             config_preamble += "\n#%s :: " %section
             for param_name in config[section]:
                 config_preamble += "%s : %s ; " %(param_name, config[section][param_name])
-#    info_preamble ='Chip ID: %%i ,  %s, LA Pixel Num: %i, SA Pixel Num: %i' %(args.chip_id, config['TMSe Pixel']['LA_pxl_num'], config['TMSe Pixel']['SA_pxl_num'])
-
 
     header = data_preamble + '\n' + dac_preamble + config_preamble + '\n#CHIP ID : %i\n' %args.chip_id + '\n\n'
     return header
+def write_root(output_file,waveform, config, xyscale):
+    file = uproot.recreate(output_file)
+    
+    #Scope Scale
+    file["Header/xscale(t)"]= str(xyscale[0])
+    file["Header/yscale(V)"]= str(xyscale[1])
+    file["Header/yoffset(V)"]= str(xyscale[2])
+
+    #header
+    config_dict = {s:dict(config.items(s)) for s in config.sections()}
+    for key in config_dict.keys():
+        for key_value in config_dict[key].keys():
+            #print(config_dict[key][key_value])
+            file["Header/%s/%s" %(key,key_value)] = config_dict[key][key_value]
+     
+    #waveforms
+    #file["waveform"] = {"wf": [waveform, waveform, waveform, waveform] }
+    file.mktree("wfTree", {"wf": ("uint8", (len(waveform), ))}, title = "waveforms")
+    return file
 
 if __name__ == '__main__':
 
     tek_scope = svi.tek_visa()
-    afg_device = afg.afg_visa() 
+    #afg_device = afg.afg_visa() 
 
     fpga_device = fpga_comm.fpga_UART_commands()
     fpga_device.set_internal_ref()
@@ -54,7 +73,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-sp' , type=int, dest='num_wfs', help='Number of single pixel (CSA) waveforms')
     parser.add_argument('-config', type=argparse.FileType('r', encoding='UTF-8'), dest='config_file', help='Config File', default='config/Config.ini')
-    parser.add_argument('-ofile', type = str, dest = 'ofile', help = 'Prefix for output file(s)', default='video_out')
+    parser.add_argument('-ofile', type = str, dest = 'ofile', help = 'Prefix for output file(s)', default='video_out.root')
     
     parser.add_argument('-SA_sel', type = int, dest='sa_pxl_addr', help='Select pixel on small array')
     parser.add_argument('-SA_sw', type=bool, dest = 'use_switch', help='Select pixels via hardware switches')
@@ -81,8 +100,8 @@ if __name__ == '__main__':
             pulse_height = float(config['Calibration']['gring_height']) /1000
             gring_freq = float(config['Calibration']['gring_freq'])
 
-            afg_device.setch2_voltage('ON',pulse_height ,gring_freq)
-
+            #afg_device.setch2_voltage('ON',pulse_height ,gring_freq)
+        print(config.items())
         load_instant=False
 
         ch = np.arange(0,8,1)
@@ -119,17 +138,19 @@ if __name__ == '__main__':
         #fpga_device.SA_use_switch()
 
     if (args.num_wfs is not None): #means we want single pixel waveforms
-        
+        tek_scope.get_preamble() 
         xyscale =  tek_scope.get_scale()
        
         header = make_header(xyscale, config,args,ch_names, val)  
-        for i in range(args.num_wfs): 
-            wf, wf_b = tek_scope.get_waveform(1)
-            with open(args.ofile+"_%i.dat"%i, "wb") as out:
-                out.write(header.encode('utf-8'))
-                out.write(('#Data Length: %i\n' %len(wf_b)).encode('utf-8'))
-                out.write(wf_b)
         
+        for i in range(args.num_wfs): 
+            start = time.time()
+            wf, wf_b = tek_scope.get_waveform(1)
+            if i == 0:
+                file = write_root(args.ofile,wf, config, xyscale)
+            file["wfTree"].extend( {"wf": [wf]} )
+            end=time.time()
+            print("Waveforms: %i \t Acquisition time: %.3f" %(i, end-start))
     else: #read pixel array
         print('pixel array read not available')
         

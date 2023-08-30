@@ -54,6 +54,7 @@ if __name__ == '__main__':
 
     ADC_wave, b = scope.get_waveform(1)
     xyscale = scope.get_scale()
+
     time,volts= to_xy(ADC_wave,xyscale)
     
     plt.plot(time, volts)

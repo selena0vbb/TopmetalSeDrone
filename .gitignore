@@ -3,6 +3,7 @@ scope_control/__pycache__/*
 tmse_control/__pycache__/*
 *.swp
 *.dat
+*.root
 test.py
 scope_control/*.txt
 __pycache__/
