@@ -69,8 +69,9 @@ class fpga_UART_commands():
         self.LA_scan_on()
         self.uart_write(DONT_CARE+LA_PXL_SELECT)
         DATA = format(pxl_num, '016b')
-        self.uart_write(DATA[:8])
+        print(DATA, DATA[:8], DATA[8:])
         self.uart_write(DATA[8:])
+        self.uart_write(DATA[:8])
 
     def LA_scan_on(self):
         '''
@@ -79,8 +80,8 @@ class fpga_UART_commands():
         '''
         self.uart_write(DONT_CARE+LA_PXL_SELECT)
         DATA = format(12000, '016b')
-        self.uart_write(DATA[:8])
         self.uart_write(DATA[8:])
+        self.uart_write(DATA[:8])
 
     def SA_pixel_select(self, pxl_num):
         '''
@@ -190,7 +191,7 @@ if __name__ == '__main__':
     fpga = fpga_UART_commands()
     fpga.SA_pixel_select(1)
     #fpga.SA_use_switch()
-    #fpga.LA_scan_on()
+    fpga.LA_pixel_select(10000)
     '''
     fpga.set_internal_ref()
     fpga.set_dac_voltage(0,0.3)
