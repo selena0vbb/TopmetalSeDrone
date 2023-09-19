@@ -59,6 +59,59 @@ def write_root(output_file,waveform, config, xyscale):
     file.mktree("wfTree", {"wf": ("uint8", (len(waveform), ))}, title = "waveforms")
     return file
 
+def set_DAC_vals(config, fpga_device):
+    load_instant=False
+
+    ch = np.arange(0,8,1)
+    ch_names = ['SF_IB', 'NB1', 'NB2', 'OUT_IB', 'AMP_IB', 'VREF', 'CSA_VREF', 'VBIAS']
+    
+    val = []
+
+    for ch_num in ch:
+        ch_attr = 'ch_%i'%(ch_num)
+        val.append(float(config['DAC'][ch_attr]))
+
+    table_ch_val = list(zip(ch,ch_names,val))
+
+    print(tabulate(table_ch_val, headers=['Channel', 'Value(V)']))
+    use_adu=False
+
+    for value_set in table_ch_val:
+        channel = value_set[0]
+        dac_value = value_set[2]
+        if load_instant: 
+            fpga_device.set_dac_voltage(channel, dac_value, load=True, adu = use_adu) #write DAC value and instantly load onto DAC
+        else:
+            if channel < 7:
+                fpga_device.set_dac_voltage(channel, dac_value ) #write DAC without loading 
+            else:
+                fpga_device.set_dac_voltage(channel, dac_value, load=True,update_all=True, adu = use_adu) #write last channel and load all values
+    return 0
+def set_pixel(config, fpga_device, afg_device):
+    if config['TMSe Pixel']['Single_pxl']:
+        if config['TMSe Pixel']['SA_pxl_num'] != '-1':
+            print("Selecting pixel: %i" %(int(config['TMSe Pixel']['SA_pxl_num'])))
+            fpga_device.SA_pixel_select(int(config['TMSe Pixel']['SA_pxl_num']))
+        elif config['TMSe Pixel']['LA_pxl_num'] != -1:
+            print("Selecting LA pixel: %i" %(int(config['TMSe Pixel']['LA_pxl_num'])))
+            afg_device.setch1_voltage('ON',3.3, 1E6)
+            fpga_device.LA_pixel_select(int(config['TMSe Pixel']['LA_pxl_num']))
+            afg_device.setch1_voltage('OFF',3.3, 1E6)
+    return 0
+def set_calibration_params(config, afg_device):
+    
+    if config['Calibration']['Calib'] == 'True':
+        pulse_height = float(config['Calibration']['gring_height']) /1000
+        gring_freq = float(config['Calibration']['gring_freq'])
+
+        afg_device.setch2_voltage('ON',pulse_height ,gring_freq)
+
+    return 0
+def clock_on(afg_device):
+    afg_device.setch1_voltage('ON',3.3, 1E6)
+def clock_off(afg_device):
+    afg_device.setch1_voltage('ON',3.3, 1E6)
+
 if __name__ == '__main__':
 
     tek_scope = svi.tek_visa()
@@ -86,61 +139,13 @@ if __name__ == '__main__':
     
     if (args.config_file is not None): #write a bias config 
         
-
         config=configparser.ConfigParser()
         config.read(args.config_file.name)
-         
-        if config['TMSe Pixel']['Single_pxl']:
-            if config['TMSe Pixel']['SA_pxl_num'] != '-1':
-                print("Selecting pixel: %i" %(int(config['TMSe Pixel']['SA_pxl_num'])))
-                fpga_device.SA_pixel_select(int(config['TMSe Pixel']['SA_pxl_num']))
-            elif config['TMSe Pixel']['LA_pxl_num'] != -1:
-                print("Selecting LA pixel: %i" %(int(config['TMSe Pixel']['SA_pxl_num'])))
-                afg_device.setch1_voltage('ON',3.3, 1E6)
-                fpga_device.LA_pixel_select(int(config['TMSe Pixel']['LA_pxl_num']))
-                afg_device.setch1_voltage('OFF',3.3, 1E6)
-
-        if config['Calibration']['Calib'] == 'True':
-            pulse_height = float(config['Calibration']['gring_height']) /1000
-            gring_freq = float(config['Calibration']['gring_freq'])
-
-            afg_device.setch2_voltage('ON',pulse_height ,gring_freq)
-        print(config.items())
-        load_instant=False
-
-        ch = np.arange(0,8,1)
-        ch_names = ['SF_IB', 'NB1', 'NB2', 'OUT_IB', 'AMP_IB', 'VREF', 'CSA_VREF', 'VBIAS']
         
-        val = []
-
-        for ch_num in ch:
-            ch_attr = 'ch_%i'%(ch_num)
-            val.append(float(config['DAC'][ch_attr]))
-
-        table_ch_val = list(zip(ch,ch_names,val))
-
-        print(tabulate(table_ch_val, headers=['Channel', 'Value(V)']))
-        use_adu=False
-
-        for value_set in table_ch_val:
-            channel = value_set[0]
-            dac_value = value_set[2]
-            if load_instant: 
-                fpga_device.set_dac_voltage(channel, dac_value, load=True, adu = use_adu) #write DAC value and instantly load onto DAC
-            else:
-                if channel < 7:
-                    fpga_device.set_dac_voltage(channel, dac_value ) #write DAC without loading 
-                else:
-                    fpga_device.set_dac_voltage(channel, dac_value, load=True,update_all=True, adu = use_adu) #write last channel and load all values
+        set_DAC_vals(config, fpga_device) 
+        set_pixel(config, fpga_device, afg_device)
+        set_calibration_params(config, afg_device)
     
-    if (args.sa_pxl_addr is not None):
-        
-        fpga_device.SA_pixel_select(args.sa_pxl_addr)
-    else:
-        print('skipping this for now')
-        #print('this')
-        #fpga_device.SA_use_switch()
-
     if (args.num_wfs is not None): #means we want single pixel waveforms
         tek_scope.get_preamble() 
         xyscale =  tek_scope.get_scale()
@@ -156,6 +161,5 @@ if __name__ == '__main__':
             end=time.time()
             print("Waveforms: %i \t Acquisition time: %.3f" %(i, end-start))
     else: #read pixel array
-        print('pixel array read not available')
+        print('pixel array read not yet available')
         
-
