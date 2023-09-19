@@ -62,7 +62,7 @@ def write_root(output_file,waveform, config, xyscale):
 if __name__ == '__main__':
 
     tek_scope = svi.tek_visa()
-    #afg_device = afg.afg_visa() 
+    afg_device = afg.afg_visa() 
 
     fpga_device = fpga_comm.fpga_UART_commands()
     fpga_device.set_internal_ref()
@@ -91,16 +91,20 @@ if __name__ == '__main__':
         config.read(args.config_file.name)
          
         if config['TMSe Pixel']['Single_pxl']:
-            if config['TMSe Pixel']['SA_pxl_num'] != -1:
+            if config['TMSe Pixel']['SA_pxl_num'] != '-1':
                 print("Selecting pixel: %i" %(int(config['TMSe Pixel']['SA_pxl_num'])))
                 fpga_device.SA_pixel_select(int(config['TMSe Pixel']['SA_pxl_num']))
             elif config['TMSe Pixel']['LA_pxl_num'] != -1:
-                print('LA not yet tested')
+                print("Selecting LA pixel: %i" %(int(config['TMSe Pixel']['SA_pxl_num'])))
+                afg_device.setch1_voltage('ON',3.3, 1E6)
+                fpga_device.LA_pixel_select(int(config['TMSe Pixel']['LA_pxl_num']))
+                afg_device.setch1_voltage('OFF',3.3, 1E6)
+
         if config['Calibration']['Calib'] == 'True':
             pulse_height = float(config['Calibration']['gring_height']) /1000
             gring_freq = float(config['Calibration']['gring_freq'])
 
-            #afg_device.setch2_voltage('ON',pulse_height ,gring_freq)
+            afg_device.setch2_voltage('ON',pulse_height ,gring_freq)
         print(config.items())
         load_instant=False
 
