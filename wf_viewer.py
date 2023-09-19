@@ -40,4 +40,5 @@ if __name__ == '__main__':
     wf = get_root_wf(fname)
     end=time.time()
     print(end-start)
+    plt.plot(wf[0])
     plt.show()
