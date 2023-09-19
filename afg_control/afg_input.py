@@ -14,10 +14,8 @@ from struct import unpack
 class afg_visa():
 	def __init__(self):
 		rm = pyvisa.ResourceManager('@py')
-		print(rm.list_resources())
 		self.scope = rm.open_resource('USB0::2391::22279::MY59000490::0::INSTR')
 		print(self.scope.query('*IDN?'))
-        #print(self.scope.query('*TST?'))
         
 	def setch1_voltage(self,status, voltage,frequency):
 		self.scope.write('OUTP1 '+ str(status))

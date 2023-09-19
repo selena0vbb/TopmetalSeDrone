@@ -69,7 +69,6 @@ class fpga_UART_commands():
         self.LA_scan_on()
         self.uart_write(DONT_CARE+LA_PXL_SELECT)
         DATA = format(pxl_num, '016b')
-        print(DATA, DATA[:8], DATA[8:])
         self.uart_write(DATA[8:])
         self.uart_write(DATA[:8])
 
