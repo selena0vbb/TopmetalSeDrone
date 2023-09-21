@@ -21,7 +21,7 @@ class tek_visa():
 
     def get_preamble(self):
         self.preamble = self.scope.query('WFMOUTPRE?')
-        print(self.preamble)
+        #print(self.preamble)
        
     def get_scale(self):
         xscale = float(self.scope.query('WFMPRE:XINCR?'))
@@ -59,13 +59,13 @@ class tek_visa():
         baseline = np.mean(np.array(unpack('%iB' % len(ADC_wave_b),ADC_wave_b))) 
         offset = float(self.scope.query('CH1:OFFSet?'))
         print(baseline, offset)
-        while (baseline<=130):
+        while (baseline<160):
             offset = offset - 0.01
             
-            print(offset)
+            print(baseline,offset)
             self.scope.write('CH1:OFFSet %.2f' %offset)
             
-            time.sleep(0.9)
+            time.sleep(1)
             self.scope.write('CURVE?')
             
             data=self.scope.read_raw()
@@ -78,10 +78,10 @@ class tek_visa():
         while (baseline>=170):
             offset = offset + 0.01
             
-            print(offset)
+            print(baseline,offset)
             self.scope.write('CH1:OFFSet %.2f' %offset)
             
-            time.sleep(0.9)
+            time.sleep(1.5)
             self.scope.write('DATA:STOP 100')
             self.scope.write('CURVE?')
             
@@ -92,6 +92,41 @@ class tek_visa():
             
             baseline = np.mean(np.array(unpack('%iB' % len(ADC_wave_b),ADC_wave_b))) 
 
+        print(baseline,offset)
+        while (baseline<160):
+            offset = offset - 0.005
+            
+            print(baseline,offset)
+            self.scope.write('CH1:OFFSet %.2f' %offset)
+            
+            time.sleep(1.5)
+            self.scope.write('CURVE?')
+            
+            data=self.scope.read_raw()
+            headerlen = 2 + int(data[1])
+            header = data[:headerlen]
+            ADC_wave_b = data[headerlen:-1]
+            
+            baseline = np.mean(np.array(unpack('%iB' % len(ADC_wave_b),ADC_wave_b))) 
+        while (baseline>=170):
+            offset = offset + 0.005
+            
+            print(baseline,offset)
+            self.scope.write('CH1:OFFSet %.2f' %offset)
+            
+            time.sleep(1.5)
+            self.scope.write('DATA:STOP 100')
+            self.scope.write('CURVE?')
+            
+            data=self.scope.read_raw()
+            headerlen = 2 + int(data[1])
+            header = data[:headerlen]
+            ADC_wave_b = data[headerlen:-1]
+            
+            baseline = np.mean(np.array(unpack('%iB' % len(ADC_wave_b),ADC_wave_b))) 
+
+
+        print(baseline,offset)
 
 if __name__ == '__main__':
     scope = tek_visa();
