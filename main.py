@@ -1,10 +1,9 @@
+#!/usr/bin/env python3.8
 import numpy as np
 import matplotlib.pyplot as plt
 
 import sys
-sys.path.append('tmse_control/')
-sys.path.append('scope_control/')
-sys.path.append('afg_control/')
+sys.path.append('device_control/')
 
 import afg_input as afg
 import scope_visa as svi
@@ -18,6 +17,7 @@ import pyfiglet
 from tabulate import tabulate
 
 import time
+import os
 def make_header(xyscale, config, args,ch_names, val):
     #Oscilloscope Scale Settings
     data_scale_name=['T step(s)', 'Y Scale(V)', 'Y Offset(mV)']
@@ -39,7 +39,7 @@ def make_header(xyscale, config, args,ch_names, val):
 
     header = data_preamble + '\n' + dac_preamble + config_preamble + '\n#CHIP ID : %i\n' %args.chip_id + '\n\n'
     return header
-def write_root(output_file,waveform, config, xyscale):
+def write_root(output_file,waveforms, config, xyscale):
     file = uproot.recreate(output_file)
     
     #Scope Scale
@@ -56,7 +56,11 @@ def write_root(output_file,waveform, config, xyscale):
      
     #waveforms
     #file["waveform"] = {"wf": [waveform, waveform, waveform, waveform] }
-    file.mktree("wfTree", {"wf": ("uint8", (len(waveform), ))}, title = "waveforms")
+    num_samp = len(waveforms[0]) 
+    file.mktree("wfTree", {"wf": ("uint8", num_samp) }, title = "waveforms")
+    for x in waveforms:
+        print(len(x))
+        file["wfTree"].extend({"wf": [x[:num_samp]]})
     return file
 
 def set_DAC_vals(config, fpga_device):
@@ -79,6 +83,7 @@ def set_DAC_vals(config, fpga_device):
     for value_set in table_ch_val:
         channel = value_set[0]
         dac_value = value_set[2]
+        
         if load_instant: 
             fpga_device.set_dac_voltage(channel, dac_value, load=True, adu = use_adu) #write DAC value and instantly load onto DAC
         else:
@@ -86,16 +91,18 @@ def set_DAC_vals(config, fpga_device):
                 fpga_device.set_dac_voltage(channel, dac_value ) #write DAC without loading 
             else:
                 fpga_device.set_dac_voltage(channel, dac_value, load=True,update_all=True, adu = use_adu) #write last channel and load all values
-    return 0
+        
+    return val
 def set_pixel(config, fpga_device, afg_device):
     if config['TMSe Pixel']['Single_pxl']:
         if config['TMSe Pixel']['SA_pxl_num'] != '-1':
             print("Selecting pixel: %i" %(int(config['TMSe Pixel']['SA_pxl_num'])))
             fpga_device.SA_pixel_select(int(config['TMSe Pixel']['SA_pxl_num']))
-        elif config['TMSe Pixel']['LA_pxl_num'] != -1:
+        if config['TMSe Pixel']['LA_pxl_num'] != -1:
             print("Selecting LA pixel: %i" %(int(config['TMSe Pixel']['LA_pxl_num'])))
             afg_device.setch1_voltage('ON',3.3, 1E6)
             fpga_device.LA_pixel_select(int(config['TMSe Pixel']['LA_pxl_num']))
+            time.sleep(0.8)
             afg_device.setch1_voltage('OFF',3.3, 1E6)
     return 0
 def set_calibration_params(config, afg_device):
@@ -113,8 +120,11 @@ def clock_off(afg_device):
     afg_device.setch1_voltage('ON',3.3, 1E6)
 
 if __name__ == '__main__':
+    print(pyfiglet.figlet_format("TopmetalSeDrone", width=200))
 
+    print("Devices Connected:")
     tek_scope = svi.tek_visa()
+    #rigol_scope = svi.rigol_visa()
     afg_device = afg.afg_visa() 
 
     fpga_device = fpga_comm.fpga_UART_commands()
@@ -131,35 +141,78 @@ if __name__ == '__main__':
     parser.add_argument('-SA_sel', type = int, dest='sa_pxl_addr', help='Select pixel on small array')
     parser.add_argument('-SA_sw', type=bool, dest = 'use_switch', help='Select pixels via hardware switches')
 
+    parser.add_argument('-rec',  action='store_true', dest = 'rec', default=False,help = 'Make use of recording function on RIGOL MSO for speedup')
     #need to do
     parser.add_argument('-LA_sel', type = int, dest='la_pxl_addr', help ='Select pixel on large array')
     parser.add_argument('-LA_clk', type = bool, dest='la_clk_on', help = 'Turn on LA pixel scan')
 
     args=parser.parse_args() 
-    
+    #print("Processing Args...") 
+    if args.ofile != 'video_out.root':
+        if os.path.isfile(args.ofile):
+            print("Out File Already Exists")
+            sys.exit()
     if (args.config_file is not None): #write a bias config 
-        
+        #print("Processing Config File") 
         config=configparser.ConfigParser()
         config.read(args.config_file.name)
-        
-        set_DAC_vals(config, fpga_device) 
+        #print("Setting DAC Values") 
+        val = set_DAC_vals(config, fpga_device) 
         set_pixel(config, fpga_device, afg_device)
+        #time.sleep(0.5)
+        #print("Setting Calibration Parameters")
         set_calibration_params(config, afg_device)
-    
     if (args.num_wfs is not None): #means we want single pixel waveforms
-        tek_scope.get_preamble() 
-        xyscale =  tek_scope.get_scale()
-       
-        header = make_header(xyscale, config,args,ch_names, val)  
+        #print("Reading Single Pixel Waveforms: ")
         
-        for i in range(args.num_wfs): 
-            start = time.time()
+        tek_scope.get_preamble() 
+        #rigol_scope.waveform_prep()
+        xyscale =  tek_scope.get_scale()
+        print(xyscale) 
+        ch_names = ['SF_IB', 'NB1', 'NB2', 'OUT_IB', 'AMP_IB', 'VREF', 'CSA_VREF', 'VBIAS']
+        header = make_header(xyscale, config,args,ch_names, val)  
+        i=0
+        if args.rec:
+            start=time.time()
+            rigol_scope.record_wfs()
+            wf = np.empty((25, 80012))
+            
+            time.sleep(1)
+            for i in range(25):
+                time.sleep(.4)
+                wf[i] = rigol_scope.get_rec_wf(i+1)
+            print(wf)
+            end=time.time()
+            print(end-start)
+            file = write_root(args.ofile, np.empty(80012), config, xyscale)
+            file["wfTree"].extend({"wf":wf})
+        while i < args.num_wfs and not args.rec:
+            '''
+            start = time.time() 
             wf, wf_b = tek_scope.get_waveform(1)
+            print(len(wf))
             if i == 0:
                 file = write_root(args.ofile,wf, config, xyscale)
-            file["wfTree"].extend( {"wf": [wf]} )
-            end=time.time()
-            print("Waveforms: %i \t Acquisition time: %.3f" %(i, end-start))
-    else: #read pixel array
-        print('pixel array read not yet available')
+            else:
+                if np.array_equal(wf,wf_old):
+                    print('Old Trigger')
+                    #continue
+            wf_old = wf
+            '''
+            wfs = tek_scope.get_FastFrames()
+            file = write_root(args.ofile,wfs, config, xyscale)
+            i = len(wfs)
+            print(i)
+            
+            #file["wfTree"].extend( {"wf": [wfs]} )
+#            time.sleep(1)
+            #i+=1
+            #end = time.time()
+            #print("Waveforms: %i \t Acquisition time: %.3f" %(i, end-start))
+            #sys.stdout.write("\rWaveforms: %i \t Acquisition time: %.3f" %(i, end-start))
         
+            sys.stdout.flush()
+    else: #read pixel array
+        print('Rolling Shutter read not yet available')
+ 
+

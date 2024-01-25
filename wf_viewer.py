@@ -20,7 +20,7 @@ def get_waveforms(fname, binary_file=True):
         header_vals = header.split(';')
         tscale = float(header_vals[0].split(':')[-1]) * 1000 #ms
         vscale = float(header_vals[1].split(':')[-1]) * 1000 #mV
-    
+        
     v = dat * vscale
     return v, tscale
 
@@ -28,17 +28,25 @@ def get_root_wf(fname):
     froot = uproot.open(fname)
     config = froot["Header"]
 
-    wf = froot["wfTree"]["wf"].array(library="np")
+    wf = froot["wfTree"]["wf"].array(library="np")[1]
+    xscale = float(config["xscale(t)"]) * 1000
+    yscale = float(config["yscale(V)"]) * 1000
+    print(yscale) 
+    print(xscale)
+    mv = wf*yscale
+    t = xscale * np.arange(0, len(wf), 1)
 #    print(wf)
     #print(froot["Header"].keys())
 
-    return wf
+    return wf, mv, t
 
 if __name__ == '__main__':
     fname=sys.argv[1]
     start=time.time()
-    wf = get_root_wf(fname)
-    end=time.time()
-    print(end-start)
-    plt.plot(wf[0])
+    wf,mv,t = get_root_wf(fname)
+    print(len(wf))
+#    end=time.time()
+    #print(wf[1] - wf[0])
+    plt.plot(t,mv)
+    #plt.plot(wf[1])
     plt.show()

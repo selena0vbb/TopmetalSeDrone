@@ -54,7 +54,7 @@ class fpga_UART_commands():
         uart_packet=bytearray()
         uart_packet.append(int(binary_string,2))
         self.ser.write(uart_packet)
-    
+     
     def DAC_write_start(self):
         '''
             Tells the FPGA that the 32 bits after these 8 will be used for the DAC and should be written via SPI
@@ -67,6 +67,7 @@ class fpga_UART_commands():
             If the pxl_num is larger than the number of pixels, this will end up just scanning the pixel array
         '''
         self.LA_scan_on()
+        time.sleep(0.05)
         self.uart_write(DONT_CARE+LA_PXL_SELECT)
         DATA = format(pxl_num, '016b')
         self.uart_write(DATA[8:])
@@ -188,9 +189,10 @@ class fpga_UART_commands():
 
 if __name__ == '__main__':
     fpga = fpga_UART_commands()
-    fpga.SA_pixel_select(1)
+    #fpga.SA_pixel_select(1)
     #fpga.SA_use_switch()
-    fpga.LA_pixel_select(10000)
+    fpga.LA_pixel_select(5302)
+
     '''
     fpga.set_internal_ref()
     fpga.set_dac_voltage(0,0.3)
